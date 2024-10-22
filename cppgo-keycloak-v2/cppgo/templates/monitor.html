@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Phone Numbers</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+    <iframe src="{{.grafanaURL}}" title="Grafana Monitoring"></iframe>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/static/common/navbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-placeholder').innerHTML = data;
+                });
+        });
+    </script>
+</body>
+</html>

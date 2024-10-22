@@ -1,0 +1,78 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cpp-go-deployment-log
+  labels:
+    app: cpp-go-log
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: cpp-go-log
+  template:
+    metadata:
+      labels:
+        app: cpp-go-log
+    spec:
+      containers:
+      - name: cpp-go-log
+        image: harbor.taas.vodafone.local/cpp-mock/cppmock-log:6988
+        volumeMounts:
+        - name: ca-cert-volume
+          mountPath: /etc/ssl/certs
+        ports:
+        - containerPort: 8080
+        env:
+        - name: CPP_HOST
+          value: https://cpp-log-tzl-wl.taas.vodafone.local
+        - name: POSTGRES_HOST
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials2
+              key: PGHOST
+        - name: POSTGRES_USER
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials2
+              key: PGUSER
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials2
+              key: PGPASSWORD
+        - name: POSTGRES_DB
+          valueFrom:
+            secretKeyRef:
+              name: db-credentials2
+              key: PGDATABASE
+        - name: KEYCLOAK_URL
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-credentials
+              key: KCURL
+        - name: KEYCLOAK_REALM
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-credentials
+              key: KCREALM
+        - name: CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-credentials
+              key: KCCLIENTID
+        - name: CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: keycloak-credentials
+              key: KCCLIENTSECRET
+        - name: GRAFANA_URL
+          valueFrom:
+            secretKeyRef:
+              name: grafana-credentials
+              key: GRAFANAURL
+      imagePullSecrets:                                                                                                               
+      - name: harborpull
+      volumes:
+      - name: ca-cert-volume
+        configMap:
+          name: ldap-cert-new

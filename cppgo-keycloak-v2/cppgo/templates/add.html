@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Phone Number</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+    <div class="container">
+        <h1>Add Phone Number and Brand</h1>
+        <form id="addPhoneForm" action="/add" method="post">
+            <div>
+                <label>Phone Number</label>
+                <input type="text" id="phone_number" name="PhoneNumber" required>
+            </div>
+            <div>
+                <label>Brand Name</label>
+                <input type="text" id="display_name" name="DisplayName" required>
+            </div>
+            <button type="submit">Add</button>
+        </form>
+    </div>
+
+    <script>
+
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/static/common/navbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-placeholder').innerHTML = data;
+                });
+        });
+        
+        document.getElementById('addPhoneForm').addEventListener('submit', function(event) {
+            var phoneNumberInput = document.getElementById('phone_number').value;
+            // Regular expression to match "tel:+" followed by digits
+            var regex = /^tel:\+[0-9]+$/;
+
+            if (!regex.test(phoneNumberInput)) {
+                alert('Phone number must start with "tel:+" and be followed by digits.');
+                event.preventDefault(); // Prevent form submission
+            }
+        });
+    </script>
+</body>
+</html>
+

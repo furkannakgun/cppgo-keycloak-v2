@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Call Logs</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/lib/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+    <div class="container">
+        <h1>Search Call Logs</h1>
+        <!-- Call Logs Search Form -->
+        <form id="searchForm">
+            <div class="form-group">
+                <input type="text" name="phone_number" placeholder="Enter phone number" />
+            </div>
+            <div class="form-group">
+                <input type="date" name="start_date" placeholder="Enter start date" />
+            </div>
+            <div class="form-group">
+                <input type="date" name="end_date" placeholder="Enter end date" />
+            </div>
+            <div class="form-group">
+                <input type="text" name="size" placeholder="Result size (1-1000)" min="1" max="1000" />
+            </div>
+            <button type="button" onclick="searchCallLogs()">Search</button>
+        </form>
+    </div>
+    <div class="container search-results-container">
+        <!-- Placeholder for Search Results -->
+        <div id="searchResults">
+            <button onclick="exportToExcel()">Export to Excel</button>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Calling Display Name</th>
+                        <th>Calling Phone Number</th>
+                        <th>Called Phone Number</th>
+                        <th>Call Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .CallLogs}}
+                    <tr>
+                        <td>{{.DisplayName}}</td>
+                        <td>{{.PhoneNumber}}</td>
+                        <td>{{.CalledPhoneNumber}}</td>
+                        <td>{{.FormattedTimestamp}}</td>
+                    </tr>
+                    {{else}}
+                    <tr>
+                        <td colspan="4">No call logs found.</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/static/common/navbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-placeholder').innerHTML = data;
+                });
+        });
+
+        function searchCallLogs() {
+            const form = document.getElementById('searchForm');
+            const phone_number = form.querySelector('[name="phone_number"]').value;
+            // Convert start and end dates to DD-MM-YYYY format
+            const start_date = convertDateFormat(form.querySelector('[name="start_date"]').value);
+            const end_date = convertDateFormat(form.querySelector('[name="end_date"]').value);
+            var size = form.querySelector('[name="size"]').value;
+
+            if (isNaN(size) || size == NaN){
+                size = 5;
+            }
+
+            if (!validateInputs(phone_number, start_date, end_date, size)) {
+                return;
+            }
+
+            let queryURL = '/calls?';
+            if (phone_number) queryURL += `phone_number=${encodeURIComponent(phone_number)}&`;
+            if (start_date) queryURL += `start_date=${encodeURIComponent(start_date)}&`;
+            if (end_date) queryURL += `end_date=${encodeURIComponent(end_date)}&`;
+            if (size) queryURL += `size=${encodeURIComponent(size)}&`;
+            queryURL += 'filter=1'
+
+            fetch(queryURL)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    displayResults(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching call logs:', error);
+                    alert('Failed to fetch call logs. Please try again later.');
+                });
+        }
+
+        function validateInputs(phone_number, start_date, end_date, size) {
+            if (phone_number && !phone_number.startsWith("tel:+")) {
+                alert("Phone number should start with 'tel:+'");
+                return false;
+            }
+
+            // No need to validate date format anymore as input type="date" ensures correct format
+            // However, ensure the converted dates still make logical sense
+            if (start_date && end_date && new Date(convertDateFormatToISO(start_date)) > new Date(convertDateFormatToISO(end_date))) {
+                alert("End date must be after start date");
+                return false;
+            }
+
+            const sizeNum = parseInt(size, 10);
+            if (sizeNum < 1 || sizeNum > 1000) {
+                alert("Size must be between 1 and 1000");
+                return false;
+            }
+
+            return true;
+        }
+
+        function convertDateFormat(dateStr) {
+            if (dateStr) {
+                const [year, month, day] = dateStr.split('-');
+                return `${day}-${month}-${year}`;
+            }
+            return '';
+        }
+
+        // Helper function to convert DD-MM-YYYY back to ISO format YYYY-MM-DD for validation
+        function convertDateFormatToISO(dateStr) {
+            if (dateStr) {
+                const [day, month, year] = dateStr.split('-');
+                return `${year}-${month}-${day}`;
+            }
+            return '';
+        }
+
+        function displayResults(data) {
+            const resultsBody = document.querySelector('#searchResults tbody');
+            resultsBody.innerHTML = '';
+
+            if (data && data.data && Array.isArray(data.data)) {
+                data = data.data;
+            } else {
+                console.error('Unexpected data format:', data);
+                return;
+            }
+
+            data.forEach(log => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td>${log.display_name}</td>
+                    <td>${log.phone_number}</td>
+                    <td>${log.called_phone_number}</td>
+                    <td>${log.call_date}</td>
+                `;
+                resultsBody.appendChild(row);
+            });
+        }
+
+        function exportToExcel() {
+            var table = document.querySelector("#searchResults table"); // Select the table you want to export
+            var workbook = XLSX.utils.table_to_book(table, {sheet:"Call Logs"}); // Convert the table to a workbook
+            XLSX.writeFile(workbook, "CallLogs.xlsx"); // Write the workbook file
+        }
+        
+    </script>
+</body>
+</html>

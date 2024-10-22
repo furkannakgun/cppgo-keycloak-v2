@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>List Phone Numbers</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="/lib/xlsx.full.min.js"></script>
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+    <div class="container">
+        <h1>List of Phone Numbers and Brands</h1>
+
+        <!-- Search form -->
+        <form action="/list" method="get">
+            <input type="text" name="query" placeholder="Search for a phone number or brand" />
+            <button type="submit">Search</button>
+        </form>
+        <button onclick="exportToExcel('PhoneList.xlsx', 'phoneListTable')">Export to Excel</button>
+        <table id="phoneListTable">
+            <thead>
+                <tr>
+                    <th>Phone Number</th>
+                    <th>Brand Name</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{ range .data }}
+                <tr>
+                    <td>{{ .PhoneNumber }}</td>
+                    <td>{{ .DisplayName }}</td>
+                    <td>
+                        <div class="action-links">
+                            <a href="/edit/{{ .ID }}">Edit</a>
+                            <a href="/delete/{{ .ID }}" class="delete-link">Delete</a>
+                        </div>
+                    </td>
+                </tr>
+                {{ end }}
+            </tbody>
+        </table>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/static/common/navbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-placeholder').innerHTML = data;
+                });
+        });
+        
+        function exportToExcel(fileName, tableId) {
+            let table = document.getElementById(tableId);
+            if (!table) {
+                console.error('Table not found');
+                return;
+            }
+    
+            // Clone the table structure without the last column
+            let clonedTable = table.cloneNode(true); // Deep clone the table
+            // Remove the 'Action' column (last column) from the cloned table
+            Array.from(clonedTable.rows).forEach(row => {
+                row.deleteCell(-1); // Deletes the last cell of each row
+            });
+    
+            // Export the cloned table to Excel
+            let workbook = XLSX.utils.table_to_book(clonedTable, { sheet: "Phone List" });
+            XLSX.writeFile(workbook, fileName);
+    
+            // No need to restore anything since we operated on a clone
+        }
+    </script>
+    
+</body>
+</html>

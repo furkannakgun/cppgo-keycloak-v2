@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+  name: cpp-ingress-log
+  namespace: default
+spec:
+  rules:
+  - host: cpp-log-tzl-poc.taas.vodafone.local
+    http:
+      paths:
+      - backend:
+          service:
+            name: cpp-go-log
+            port:
+              number: 8080
+        path: /
+        pathType: Prefix
+  tls:
+  - hosts:
+    - cpp-log-tzl-poc.taas.vodafone.local
+    secretName: taassecret

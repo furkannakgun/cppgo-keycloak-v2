@@ -1,0 +1,70 @@
+trigger:
+  branches:
+    include:
+    - feature/keycloak_integration
+  paths:
+    include:
+    - 'mockcpp-kaniko.yaml'
+pool:
+  name: tzl-poc  
+
+variables:
+  imageTag: '$(Build.BuildId)'
+
+steps:
+- checkout: self
+
+- script: |
+    sed -i 's/\${IMAGE_TAG}/$(imageTag)/g' mockcpp-kaniko.yaml
+  displayName: 'Set Image Tag'
+
+- task: Kubernetes@1
+  inputs:
+    connectionType: 'Kubernetes Service Connection'
+    kubernetesServiceEndpoint: 'tzlpoc'
+    namespace: 'default'
+    command: 'apply'
+    arguments: '-f mockcpp-kaniko.yaml'
+    secretType: 'dockerRegistry'
+    containerRegistryType: 'Azure Container Registry'
+    outputFormat: 'none'
+
+- script: |
+    sed -i 's|harbor.taas.vodafone.local/cpp-mock/cppmock-log:.*|harbor.taas.vodafone.local/cpp-mock/cppmock-log:$(imageTag)|' deployment/deployment.yaml
+  displayName: 'Set Image Tag in Deployment Config'
+
+- script: |
+    git config --global user.email "furkan.akgun@vodafone.com"
+    git config --global user.name "furkan.akgun"
+    git add deployment/deployment.yaml
+    git commit -m "Update image tag to $(imageTag)"
+    git remote set-url origin https://Furkan.Akgun:$(FURKAN-PAT)@dev.azure.com/VFGroup-TaaS-Tenants-1/Vodafone%20Turkey/_git/cppgo
+    git push origin HEAD:feature/keycloak_integration
+  displayName: 'Commit and Push Updated Deployment File'
+  env:
+    FURKAN-PAT: $(FURKAN-PAT)
+  
+- script: |
+    # Set the pod name
+    POD_NAME=kaniko-$(imageTag)
+    
+    # Check the pod status in a loop
+    for i in {1..60} # Check for 10 minutes at 10-second intervals
+    do
+      # Get the current status of the pod
+      POD_STATUS=$(kubectl get pod $POD_NAME -n default -o jsonpath={.status.phase})
+      
+      # Check if the status is 'Completed'
+      if [ "$POD_STATUS" == "Succeeded" ]; then
+        echo "Pod is completed. Deleting pod..."
+        kubectl delete pod $POD_NAME -n default
+        break
+      fi
+      
+      # Wait for 10 seconds before the next check
+      sleep 10
+    done
+  displayName: 'Check Kaniko Job Status and Delete if Completed'
+  continueOnError: true
+
+

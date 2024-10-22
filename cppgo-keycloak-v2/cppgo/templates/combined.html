@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Phone Numbers</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script>
+        function confirmDelete(id) {
+            if (confirm('Are you sure you want to delete this record?')) {
+                window.location.href = '/delete/' + id;
+            }
+        }
+    </script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Manage Phone Numbers and Brands</h1>
+        </header>
+
+        <section>
+            <!-- Add Phone Number Section -->
+            <h2>Add New Phone Number</h2>
+            <form action="/add" method="post">
+                <div>
+                    <label for="PhoneNumber">Phone Number</label>
+                    <input type="text" name="PhoneNumber" id="PhoneNumber" required>
+                </div>
+                <div>
+                    <label for="DisplayName">Brand Name</label>
+                    <input type="text" name="DisplayName" id="DisplayName" required>
+                </div>
+                <button type="submit">Add</button>
+            </form>
+        </section>
+
+        <section>
+            <!-- Search and List Section -->
+            <h2>List of Phone Numbers and Brands</h2>
+            <form action="/list" method="get" style="margin-bottom: 20px;">
+                <input type="text" name="query" placeholder="Search for a phone number or brand" />
+                <button type="submit">Search</button>
+            </form>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Phone Number</th>
+                        <th>Brand Name</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{ range .data }}
+                    <tr>
+                        <td>{{ .PhoneNumber }}</td>
+                        <td>{{ .DisplayName }}</td>
+                        <td>
+                            <a href="/edit/{{ .ID }}" class="action-link edit">Edit</a>
+                            <!-- Replaced direct delete link with JavaScript function to ask for confirmation -->
+                            <a href="#" onclick="confirmDelete('{{ .ID }}');" class="action-link delete">Delete</a>
+                        </td>
+                    </tr>
+                    {{ end }}
+                </tbody>
+            </table>
+        </section>
+    </div>
+</body>
+</html>

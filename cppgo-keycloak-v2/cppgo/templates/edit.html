@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Call Logs</title>
+    <link rel="stylesheet" href="/static/styles.css">
+</head>
+<body>
+    <div id="navbar-placeholder"></div>
+    <div class="container">
+        <link rel="stylesheet" href="/static/styles.css">
+        <h1>Edit Brand</h1>
+        <form action="/update/{{ .ID }}" method="post">
+            <label>Phone Number:</label>
+            <input type="text" name="PhoneNumber" value="{{ .PhoneNumber }}" readonly><br><br>
+            
+            <label>Brand Name:</label>
+            <input type="text" name="DisplayName" value="{{ .DisplayName }}"><br><br>
+            
+            <button type="submit">Update</button>
+        </form>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            fetch('/static/common/navbar.html')
+                .then(response => response.text())
+                .then(data => {
+                    document.getElementById('navbar-placeholder').innerHTML = data;
+                });
+        });
+    </script>
+</body>

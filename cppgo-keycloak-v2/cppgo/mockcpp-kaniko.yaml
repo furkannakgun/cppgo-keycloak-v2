@@ -1,0 +1,90 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: kaniko-${IMAGE_TAG}
+spec:
+  initContainers:
+  - name: git-clone
+    image: alpine:latest
+    command: ["sh", "-c"]
+    args: 
+    - |
+      apk add --no-cache git &&
+      git clone -b feature/keycloak_integration https://$GIT_USERNAME:$GIT_PASSWORD@dev.azure.com/VFGroup-TaaS-Tenants-1/Vodafone%20Turkey/_git/cppgo /workspace
+      sleep 15                                                        
+    env:
+    - name: HTTP_PROXY
+      value: http://tr.mail.taas.naap:391zmSnkdmdijfxhytookfjvhb@172.31.53.99:8080
+    - name: HTTPS_PROXY
+      value: http://tr.mail.taas.naap:391zmSnkdmdijfxhytookfjvhb@172.31.53.99:8080
+    - name: NO_PROXY
+      value: "localhost,127.0.0.1,.cluster.local,.svc,https://kubernetes/api/v1,kubernetes,10.0.0.0/8,100.64.0.1,10.178.229.103,harbor.taas.vodafone.local,tzl-shrd-harbor.taas.vodafone.local"
+    - name: GIT_USERNAME
+      valueFrom:
+        secretKeyRef:
+          name: azure-git-credentials-furkan
+          key: username
+    - name: GIT_PASSWORD
+      valueFrom:
+        secretKeyRef:
+          name: azure-git-credentials-furkan
+          key: password          
+    volumeMounts:
+    - name: build-context
+      mountPath: /workspace 
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+  containers:
+  - name: kaniko
+    image: harbor.taas.vodafone.local/library/kaniko:v1
+    env:
+    - name: HTTP_PROXY
+      value: http://tr.mail.taas.naap:391zmSnkdmdijfxhytookfjvhb@172.31.53.99:8080
+    - name: HTTPS_PROXY
+      value: http://tr.mail.taas.naap:391zmSnkdmdijfxhytookfjvhb@172.31.53.99:8080
+    - name: NO_PROXY
+      value: "localhost,127.0.0.1,.cluster.local,.svc,https://kubernetes/api/v1,kubernetes,10.0.0.0/8,100.64.0.1,10.178.229.103,harbor.taas.vodafone.local,tzl-shrd-harbor.taas.vodafone.local"
+    args:
+    - "--dockerfile=Dockerfile"
+    - "--context=dir:///workspace"
+    - "--destination=harbor.taas.vodafone.local/cpp-mock/cppmock-log:${IMAGE_TAG}"
+    - "--registry-certificate=harbor.taas.vodafone.local=/kaniko/.custom-certs/harborcacert.crt"
+    - "--build-arg=http_proxy=http://tr.mail.taas.naap:391zmSnkdmdijfxhytookfjvhb@172.31.53.99:8080"
+    - "--build-arg=https_proxy=http://tr.mail.taas.naap:391zmSnkdmdijfxhytookfjvhb@172.31.53.99:8080"
+    - "--cleanup"
+    volumeMounts:
+    - name: build-context
+      mountPath: /workspace
+    - name: ca-certs
+      mountPath: /kaniko/.custom-certs/
+      readOnly: true
+    - name: kaniko-secret
+      mountPath: /kaniko/.docker
+    - name: kaniko-secret1
+      mountPath: /kaniko/.dockerhub
+  imagePullSecrets:
+  - name: gokalpsecretpassword
+  - name: harborpull    
+  restartPolicy: Never
+  volumes:
+  - name: build-context
+    emptyDir: {}
+  - name: ca-certs
+    configMap:
+     name: harbor-ca-cert
+  - name: kaniko-secret
+    secret:
+      secretName: harborpull
+      items:
+        - key: .dockerconfigjson
+          path: config.json
+  - name: kaniko-secret1
+    secret:
+      secretName: gokalpsecretpassword
+      items:
+        - key: .dockerconfigjson
+          path: config.json
+
+
+
+ 
